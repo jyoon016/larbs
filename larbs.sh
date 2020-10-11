@@ -65,7 +65,8 @@ adduserandpass() { \
 
 refreshkeys() { \
 	dialog --infobox "Refreshing Arch Keyring..." 4 40
-	pacman --noconfirm -Sy archlinux-keyring >/dev/null 2>&1
+	pacman --noconfirm -S archlinux-keyring >/dev/null 2>&1
+	pacman -Q artix-keyring >/dev/null 2>&1 && pacman --noconfirm -S archlinux-keyring >/dev/null 2>&1
 	}
 
 newperms() { # Set special sudoers settings for install (or after).
@@ -149,7 +150,7 @@ finalize(){ \
 ### This is how everything happens in an intuitive format and order.
 
 # Check if user is root on Arch distro. Install dialog.
-installpkg dialog || error "Are you sure you're running this as the root user, are on an Arch-based distribution and have an internet connection?"
+pacman --noconfirm --needed -Sy dialog || error "Are you sure you're running this as the root user, are on an Arch-based distribution and have an internet connection?"
 
 # Welcome user and pick dotfiles.
 welcomemsg || error "User exited."
@@ -206,8 +207,7 @@ yes | sudo -u "$name" $aurhelper -S libxft-bgra-git >/dev/null 2>&1
 putgitrepo "$dotfilesrepo" "/home/$name" "$repobranch"
 rm -f "/home/$name/README.md" "/home/$name/LICENSE" "/home/$name/FUNDING.yml"
 # make git ignore deleted LICENSE & README.md files
-git update-index --assume-unchanged "/home/$name/README.md"
-git update-index --assume-unchanged "/home/$name/LICENSE"
+git update-index --assume-unchanged "/home/$name/README.md" "/home/$name/LICENSE" "/home/$name/FUNDING.yml"
 
 # Most important command! Get rid of the beep!
 systembeepoff
@@ -218,6 +218,10 @@ sudo -u "$name" mkdir -p "/home/$name/.cache/zsh/"
 
 # dbus UUID must be generated for Artix runit.
 dbus-uuidgen > /var/lib/dbus/machine-id
+
+# Fix fluidsynth/pulseaudio issue.
+grep -q "OTHER_OPTS='-a pulseaudio -m alsa_seq -r 48000'" /etc/conf.d/fluidsynth ||
+	echo "OTHER_OPTS='-a pulseaudio -m alsa_seq -r 48000'" >> /etc/conf.d/fluidsynth
 
 # Start/restart PulseAudio.
 killall pulseaudio; sudo -u "$name" pulseaudio --start
